@@ -752,59 +752,79 @@ document.querySelectorAll('.candle').forEach(btn=>{
   });
 });
 
-/* Música instrumental integrada, sin YouTube ni reproductor visible.
-   Se intenta iniciar al cargar; si el navegador bloquea audio automático,
-   el botón "Abrir felicitación" la inicia en ese mismo toque. */
-let birthdayCtx=null;
-let musicStarted=false;
-let musicTimer=null;
-const birthdayNotes={
-  C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,Bb4:466.16,
-  C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99
-};
-const melody=[
-  ['G4',.22],['G4',.22],['A4',.44],['G4',.44],['C5',.44],['B4',.88],
-  ['G4',.22],['G4',.22],['A4',.44],['G4',.44],['D5',.44],['C5',.88],
-  ['G4',.22],['G4',.22],['G5',.44],['E5',.44],['C5',.44],['B4',.44],['A4',.88],
-  ['F5',.22],['F5',.22],['E5',.44],['C5',.44],['D5',.44],['C5',1.1]
-];
-/* B4 y G5 para completar la melodía */
-birthdayNotes.B4=493.88; birthdayNotes.G5=783.99;
-function playTone(freq,start,dur,vol=.035,type='triangle'){
-  const ctx=birthdayCtx;
-  const osc=ctx.createOscillator();
-  const gain=ctx.createGain();
-  osc.type=type; osc.frequency.value=freq;
-  gain.gain.setValueAtTime(0.0001,start);
-  gain.gain.exponentialRampToValueAtTime(vol,start+.025);
-  gain.gain.exponentialRampToValueAtTime(0.0001,start+dur*.92);
-  osc.connect(gain); gain.connect(ctx.destination);
-  osc.start(start); osc.stop(start+dur);
+/* Música EXACTA del video seleccionado.
+   El reproductor queda fuera de la vista. Se intenta iniciar al cargar
+   y, si el navegador bloquea el autoplay con sonido, se inicia en el primer toque. */
+const BIRTHDAY_VIDEO_ID = 'wnmss7h5g9Y';
+let birthdayYoutubeFrame = null;
+
+function sendYoutubeCommand(func, args = []) {
+  if (!birthdayYoutubeFrame || !birthdayYoutubeFrame.contentWindow) return;
+  try {
+    birthdayYoutubeFrame.contentWindow.postMessage(JSON.stringify({
+      event: 'command',
+      func,
+      args
+    }), '*');
+  } catch (e) {}
 }
-function scheduleBirthdayLoop(){
-  if(!birthdayCtx || birthdayCtx.state!=='running') return;
-  const start=birthdayCtx.currentTime+.06;
-  let t=start;
-  melody.forEach(([n,d],i)=>{
-    playTone(birthdayNotes[n],t,d*.92,.04,i%6===0?'sine':'triangle');
-    if(i%3===0) playTone(birthdayNotes[n]/2,t,d*.72,.012,'sine');
-    t+=d;
+
+function createBirthdayYoutubePlayer() {
+  if (birthdayYoutubeFrame) return birthdayYoutubeFrame;
+
+  const iframe = document.createElement('iframe');
+  iframe.id = 'birthdayYoutubeAudio';
+  iframe.title = 'Música de cumpleaños';
+  iframe.setAttribute('allow', 'autoplay; encrypted-media');
+  iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  iframe.setAttribute('tabindex', '-1');
+  iframe.setAttribute('aria-hidden', 'true');
+
+  iframe.style.cssText =
+    'position:fixed;left:-10000px;top:-10000px;width:240px;height:135px;' +
+    'border:0;opacity:0;pointer-events:none;z-index:-9999;';
+
+  const origin = encodeURIComponent(window.location.origin);
+  iframe.src =
+    'https://www.youtube.com/embed/' + BIRTHDAY_VIDEO_ID +
+    '?autoplay=1&controls=0&playsinline=1&rel=0&enablejsapi=1' +
+    '&loop=1&playlist=' + BIRTHDAY_VIDEO_ID +
+    '&origin=' + origin;
+
+  document.body.appendChild(iframe);
+  birthdayYoutubeFrame = iframe;
+
+  iframe.addEventListener('load', () => {
+    setTimeout(() => {
+      sendYoutubeCommand('unMute');
+      sendYoutubeCommand('setVolume', [85]);
+      sendYoutubeCommand('playVideo');
+    }, 350);
   });
-  const total=(t-start)+1.2;
-  clearTimeout(musicTimer);
-  musicTimer=setTimeout(scheduleBirthdayLoop,total*1000);
+
+  return iframe;
 }
-async function startBirthdayMusic(){
-  try{
-    if(!birthdayCtx) birthdayCtx=new (window.AudioContext||window.webkitAudioContext)();
-    if(birthdayCtx.state==='suspended') await birthdayCtx.resume();
-    if(!musicStarted && birthdayCtx.state==='running'){
-      musicStarted=true; scheduleBirthdayLoop();
-    }
-  }catch(e){}
+
+function startBirthdayMusic() {
+  createBirthdayYoutubePlayer();
+
+  setTimeout(() => {
+    sendYoutubeCommand('unMute');
+    sendYoutubeCommand('setVolume', [85]);
+    sendYoutubeCommand('playVideo');
+  }, 50);
+
+  setTimeout(() => {
+    sendYoutubeCommand('unMute');
+    sendYoutubeCommand('playVideo');
+  }, 900);
 }
-window.addEventListener('load',()=>{ startBirthdayMusic(); });
-document.addEventListener('pointerdown',startBirthdayMusic,{once:true,capture:true});
+
+window.addEventListener('load', () => {
+  createBirthdayYoutubePlayer();
+});
+
+document.addEventListener('pointerdown', startBirthdayMusic, { once:true, capture:true });
 
 /* Globos que caen continuamente desde arriba */
 const balloonSky=document.getElementById('balloonSky');
