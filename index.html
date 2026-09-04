@@ -447,15 +447,7 @@ button{font:inherit}
   </div>
 </div>
 
-<button class="music-btn" id="musicBtn" aria-pressed="false">🎵 Música</button>
-<div class="music-panel" id="musicPanel" aria-hidden="true">
-  <div class="music-panel-top">
-    <span>🎉 Happy Birthday</span>
-    <button id="closeMusic" aria-label="Cerrar reproductor">×</button>
-  </div>
-  <div id="ytHolder"></div>
-  <p>Toca ▶ dentro del reproductor si tu navegador bloquea el inicio automático.</p>
-</div>
+<div id="ytAudio" aria-hidden="true" style="position:fixed;width:1px;height:1px;left:-9999px;top:-9999px;overflow:hidden"></div>
 <div id="confetti"></div>
 
 <div class="wrap">
@@ -613,7 +605,6 @@ button{font:inherit}
 <script>
 const intro=document.getElementById('intro');
 const enterBtn=document.getElementById('enterBtn');
-const musicBtn=document.getElementById('musicBtn');
 const celebrateBtn=document.getElementById('celebrateBtn');
 const confetti=document.getElementById('confetti');
 const progress=document.getElementById('progress');
@@ -633,7 +624,7 @@ function burst(n=100){
     setTimeout(()=>p.remove(),5400);
   }
 }
-enterBtn.addEventListener('click',()=>{intro.classList.add('hide');setTimeout(()=>burst(90),180)});
+enterBtn.addEventListener('click',()=>{startBirthdayMusic();intro.classList.add('hide');setTimeout(()=>burst(90),180)});
 celebrateBtn.addEventListener('click',()=>burst(150));
 
 const observer=new IntersectionObserver(entries=>{
@@ -660,37 +651,20 @@ document.querySelectorAll('.candle').forEach(btn=>{
   });
 });
 
-/* Birthday music selected by the sender. */
+/* Música de cumpleaños: se inicia al tocar “Abrir felicitación”.
+   El primer toque cuenta como interacción del usuario, requisito de los navegadores para reproducir sonido. */
 let ytFrame=null;
-const musicPanel=document.getElementById('musicPanel');
-const closeMusic=document.getElementById('closeMusic');
-
-function openMusic(){
-  musicPanel.classList.add('open');
-  musicPanel.setAttribute('aria-hidden','false');
-  musicBtn.setAttribute('aria-pressed','true');
-  musicBtn.textContent='🎵 Sonando';
-  if(!ytFrame){
-    ytFrame=document.createElement('iframe');
-    ytFrame.src='https://www.youtube.com/embed/wnmss7h5g9Y?autoplay=1&playsinline=1&controls=1&rel=0';
-    ytFrame.allow='autoplay; encrypted-media; picture-in-picture';
-    ytFrame.allowFullscreen=true;
-    ytFrame.title='Happy Birthday';
-    document.getElementById('ytHolder').appendChild(ytFrame);
-  }
+function startBirthdayMusic(){
+  if(ytFrame) return;
+  ytFrame=document.createElement('iframe');
+  ytFrame.src='https://www.youtube.com/embed/wnmss7h5g9Y?autoplay=1&playsinline=1&controls=0&rel=0&modestbranding=1';
+  ytFrame.allow='autoplay; encrypted-media';
+  ytFrame.referrerPolicy='strict-origin-when-cross-origin';
+  ytFrame.tabIndex=-1;
+  ytFrame.setAttribute('aria-hidden','true');
+  ytFrame.title='';
+  document.getElementById('ytAudio').appendChild(ytFrame);
 }
-function stopMusic(){
-  musicPanel.classList.remove('open');
-  musicPanel.setAttribute('aria-hidden','true');
-  musicBtn.setAttribute('aria-pressed','false');
-  musicBtn.textContent='🎵 Música';
-  if(ytFrame){ ytFrame.remove(); ytFrame=null; }
-}
-musicBtn.addEventListener('click',()=> {
-  if(musicPanel.classList.contains('open')) stopMusic();
-  else openMusic();
-});
-closeMusic.addEventListener('click',stopMusic);
 
 const lightbox=document.getElementById('lightbox');
 const lightboxImg=document.getElementById('lightboxImg');
