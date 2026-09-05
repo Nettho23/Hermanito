@@ -802,8 +802,23 @@ function burst(n=100){
     setTimeout(()=>p.remove(),5400);
   }
 }
-enterBtn.addEventListener('click',()=>{startBirthdayMusic();intro.classList.add('hide');setTimeout(()=>burst(90),180)});
-celebrateBtn.addEventListener('click',()=>{burst(150);balloonBurst(14);});
+enterBtn.addEventListener('click',()=>{startBirthdayMusic();intro.classList.add('hide');});
+celebrateBtn.addEventListener('click',()=>{burst(170);balloonBurst(14);});
+
+
+let finalPartyPlayed=false;
+const finalSection=document.querySelector('.final');
+const finalPartyObserver=new IntersectionObserver(entries=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting && !finalPartyPlayed){
+      finalPartyPlayed=true;
+      burst(170);
+      balloonBurst(14);
+      finalPartyObserver.disconnect();
+    }
+  });
+},{threshold:.55});
+if(finalSection) finalPartyObserver.observe(finalSection);
 
 const observer=new IntersectionObserver(entries=>{
   entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')});
